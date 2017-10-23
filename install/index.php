@@ -311,13 +311,15 @@ class local_modexample extends CModule
 
                 while(false !== $item = readdir($dir)) {
 
-                    if(in_array($item, $this->exclAdminFiles)) {
+                    $filePath = $_SERVER["DOCUMENT_ROOT"] .$this->GetPath(true).'/admin/'.$item;
+
+                    if(in_array($item, $this->exclAdminFiles) || !is_file($filePath)) {
                         continue;
                     }
 
                     $subName = str_replace('.','_',$this->MODULE_ID);
                     file_put_contents($_SERVER['DOCUMENT_ROOT'].'/bitrix/admin/'.$subName.'_'.$item,
-                        '<'.'? require_once($_SERVER["DOCUMENT_ROOT"]."'.$this->GetPath(true).'/admin/'.$item.'");?'.'>');
+                        '<'.'? require_once("'.$filePath.'");?'.'>');
                 }
                 closedir($dir);
             }
