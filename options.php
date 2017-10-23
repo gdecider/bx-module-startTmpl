@@ -76,7 +76,7 @@ if ($request->isPost() && $request['update'] && check_bitrix_sessid()) {
             }
 
             $optionName = $arOption[0];
-            $optionValue = $request->getPost($optionName);
+            $optionValue = $request->getPost(str_replace('.', '_', $optionName));
 
             Option::set($module_id, $optionName, is_array($optionValue) ? implode(",", $optionValue) : $optionValue);
         }
