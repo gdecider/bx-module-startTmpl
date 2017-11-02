@@ -203,10 +203,8 @@ class local_modexample extends CModule
             $this->UnInstallFiles();
             $this->UnInstallTasks();
 
-            if($request->get('savedata') != 'Y') {
-                $this->UnInstallDB();
-            }
-
+            $this->UnInstallDB();
+            
             ModuleManager::unRegisterModule($this->MODULE_ID);
 
             $APPLICATION->IncludeAdminFile(Loc::getMessage($this->arModConf['name']."_UNINSTALL_TITLE"), $this->getPath()."/install/unstep2.php");
@@ -253,6 +251,9 @@ class local_modexample extends CModule
      */
     public function UnInstallDB() {
 
+        $context = Application::getInstance()->getContext();
+        $request = $context->getRequest();
+
         Loader::includeModule($this->MODULE_ID);
 
         // Удаляем индексы
@@ -268,15 +269,18 @@ class local_modexample extends CModule
 
         }
 
-        foreach ($this->arTables as $tableName) {
-            $tablePath = $this->arModConf['ns'] . "\\Tables\\" . $tableName . "Table";
+        if($request->get('savedata') != 'Y') {
 
-            Application::getConnection($tablePath::getConnectionName())
-                ->queryExecute('drop table if exists '.Base::getInstance($tablePath)->getDBTableName());
+            foreach ($this->arTables as $tableName) {
+                $tablePath = $this->arModConf['ns'] . "\\Tables\\" . $tableName . "Table";
+
+                Application::getConnection($tablePath::getConnectionName())
+                    ->queryExecute('drop table if exists ' . Base::getInstance($tablePath)->getDBTableName());
+            }
+
+            // удаление сохраненных настроек модуля
+            Option::delete($this->MODULE_ID);
         }
-
-        // удаление сохраненных настроек модуля
-        Option::delete($this->MODULE_ID);
 
         return true;
 
