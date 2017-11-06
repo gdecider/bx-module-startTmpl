@@ -48,41 +48,12 @@ class local_modexample extends CModule
 
     protected $PARTNER_CODE;
     protected $MODULE_CODE;
-
-    private $arTables = [
-        'TicketCategory',
-        'TicketStatus',
-        'TicketRating',
-        'TicketCategory',
-        'TicketMsg',
-        'Ticket',
-    ];
-
-    private $arIndexes = [
-        ['tableClass' => 'Ticket', 'field' => 'client_id'],
-        ['tableClass' => 'Ticket', 'field' => 'manager_id'],
-        ['tableClass' => 'Ticket', 'field' => 'ticket_status_id'],
-        ['tableClass' => 'Ticket', 'field' => 'ticket_rating_id'],
-        ['tableClass' => 'Ticket', 'field' => 'ticket_category_id'],
-        ['tableClass' => 'TicketMsg', 'field' => 'ticket_id'],
-        ['tableClass' => 'TicketMsg', 'field' => 'sender_id'],
-    ];
     
-    private $arCstmProps = [
-        ['USER', 'UF_UR_ADR', 'string', 'Юридический адрес'],
-        ['USER', 'UF_VK_OTHER', 'string', 'Вконтакте'],
-        ['USER', 'UF_INST_OTHER', 'string', 'Instagram'],
-        ['USER', 'UF_FB_OTHER', 'string', 'Facebook'],
-        ['USER', 'UF_DISCOUNT_COMMON', 'string', 'Скидка'],
-        ['USER', 'UF_DISCOUNT_VHD', 'string', 'Скидка на входные двери'],
-        ['USER', 'UF_DISCOUNT_MKD', 'string', 'Скидка на межкомнатные двери'],
-        ['USER', 'UF_DISCOUNT_POL', 'string', 'Скидка на напольные покрытия'],
-        ['USER', 'UF_DISCOUNT_FUR', 'string', 'Скидка на фурнитуру'],
-        ['USER', 'UF_OTSROCHKA_DAY', 'string', 'Отсрочка дней'],
-        ['USER', 'UF_OTSROCHKA_RUB', 'string', 'Отсрочка рублей'],
-        ['USER', 'UF_VITR_ALL', 'string', 'Витрин всего'],
-        ['USER', 'UF_KONT_LITSO_FIO', 'string', 'Контактное лицо'],
-    ];
+    private $arTables = [];
+
+    private $arIndexes = [];
+
+    private $arCstmProps = [];
 
     public function __construct(){
 
@@ -98,6 +69,18 @@ class local_modexample extends CModule
             'operation_description.php',
             'task_description.php',
         ];
+        
+        if ($this->arModConf['arCstmProps']) {
+            $this->arCstmProps = $this->arModConf['arCstmProps'];
+        }
+
+        if ($this->arModConf['arTables']) {
+            $this->arTables = $this->arModConf['arTables'];
+        }
+
+        if ($this->arModConf['arIndexes']) {
+            $this->arIndexes = $this->arModConf['arIndexes'];
+        }
 
         if (is_array($arModuleVersion) && array_key_exists('VERSION', $arModuleVersion)) {
             $this->MODULE_VERSION = $arModuleVersion['VERSION'];
@@ -256,10 +239,10 @@ class local_modexample extends CModule
         $connection = Application::getConnection();
         foreach ($this->arIndexes as $arIndex) {
 
-            $tblName = Base::getInstance($this->arModConf['nsTables'] . "\\" . $arIndex['tableClass'] . "Table")->getDBTableName();
+            $tblName = Base::getInstance($this->arModConf['nsTables'] . "\\" . $arIndex[0] . "Table")->getDBTableName();
 
-            $sql = 'CREATE INDEX idx_' . $tblName . '_'. $arIndex['field']
-                . ' on ' . $tblName . '('. $arIndex['field'] .')';
+            $sql = 'CREATE INDEX idx_' . $tblName . '_'. $arIndex[1]
+                . ' on ' . $tblName . '('. $arIndex[1] .')';
 
             $connection->queryExecute($sql);
 
@@ -280,10 +263,9 @@ class local_modexample extends CModule
         // Удаляем индексы
         $connection = Application::getConnection();
         foreach ($this->arIndexes as $arIndex) {
+            $tblName = Base::getInstance($this->arModConf['nsTables'] . "\\" . $arIndex[0] . "Table")->getDBTableName();
 
-            $tblName = Base::getInstance($this->arModConf['nsTables'] . "\\" . $arIndex['tableClass'] . "Table")->getDBTableName();
-
-            $sql = 'DROP INDEX idx_' . $tblName . '_'. $arIndex['field']
+            $sql = 'DROP INDEX idx_' . $tblName . '_'. $arIndex[1]
                 . ' on ' . $tblName;
 
             $connection->queryExecute($sql);
