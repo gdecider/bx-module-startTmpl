@@ -25,7 +25,8 @@ $module_id = strtolower($arModConf['name']);
     <p><?=Loc::getMessage("MOD_UNINST_SAVE")?></p>
     <p><input type="checkbox" value="Y" name="savedata" id="savedata" value="Y" checked><label for="savedata"><?=Loc::getMessage("MOD_UNINST_SAVE_TABLES")?></label></p>
     <p><input type="checkbox" value="Y" name="saveprops" id="saveprops" value="Y" checked><label for="saveprops">Сохранить кастомные свойства</label></p>
-
+    <p><input type="checkbox" value="Y" name="saveiblocks" id="saveiblocks" value="Y" checked><label for="saveiblocks">Сохранить инфоблоки</label></p>
+    
     <input type="submit" name="" value="<?=Loc::getMessage("MOD_UNINST_DEL")?>">
 
 </form>
