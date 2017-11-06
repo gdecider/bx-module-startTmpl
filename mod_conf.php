@@ -40,6 +40,24 @@ $arIndexes = [
     ['TicketMsg', 'sender_id'],
 ];
 
+/**
+ * @var array $arIblockTypes
+ * типы инфоблоков
+ */
+$arIblockTypes = [
+    'FORMS' => [
+        'SECTIONS' => 'N',
+        'SORT' => '100',
+        'LANG' => [
+            'ru' => [
+                'NAME'=>'Формы модуля обмена',
+//                'SECTION_NAME'=>'Sections',
+                'ELEMENT_NAME'=>'Формы'
+            ]
+        ]
+    ],
+];
+
 $arConfig = [
     'name' => 'LOCAL.EXCH1C',
     'ns' => 'Local\Exch1c',
@@ -48,6 +66,7 @@ $arConfig = [
     'arCstmProps' => $arCstmProps,
     'arTables' => $arTables,
     'arIndexes' => $arIndexes,
+    'arIblockTypes' => $arIblockTypes,
 ];
 
 return $arConfig;
