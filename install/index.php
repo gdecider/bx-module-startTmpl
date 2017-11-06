@@ -54,6 +54,8 @@ class local_modexample extends CModule
     private $arIndexes = [];
 
     private $arCstmProps = [];
+    
+    private $arIblockTypes = [];
 
     public function __construct(){
 
@@ -80,6 +82,10 @@ class local_modexample extends CModule
 
         if ($this->arModConf['arIndexes']) {
             $this->arIndexes = $this->arModConf['arIndexes'];
+        }
+        
+        if ($this->arModConf['arIblockTypes']) {
+            $this->arIblockTypes = $this->arModConf['arIblockTypes'];
         }
 
         if (is_array($arModuleVersion) && array_key_exists('VERSION', $arModuleVersion)) {
@@ -168,6 +174,7 @@ class local_modexample extends CModule
 
             try {
                 $this->InstallDB();
+                $this->InstallIblocks();
                 $this->InstallProps();
                 $this->InstallEvents();
                 $this->InstallFiles();
@@ -207,6 +214,10 @@ class local_modexample extends CModule
             
             if($request->get('saveprops') != 'Y') {
                 $this->UnInstallProps();
+            }
+            
+            if($request->get('saveiblocks') != 'Y') {
+                $this->UnInstallIblocks();
             }
             
             ModuleManager::unRegisterModule($this->MODULE_ID);
@@ -523,6 +534,84 @@ class local_modexample extends CModule
             }
 
             $oUserTypeEntity->Delete( $arRes["ID"] );
+        }
+
+        return true;
+    }
+    
+    /**
+     * Работа с инфоблоками
+     * @return bool
+     */
+    public function InstallIblocks() {
+        $db = $this->getDB();
+
+        // создаем типы инфоблоков
+        foreach ($this->arIblockTypes as $IBTypeCODE => $arIblockType) {
+
+            $ibtCode = strtolower($this->arModConf['prefix'] . '_' . $IBTypeCODE);
+            $dbIbt = CIBlockType::GetByID($ibtCode);
+            $arIbt = $dbIbt->GetNext();
+
+            if($arIbt) {
+                continue;
+            }
+
+            $arFields = [
+                'ID' => $ibtCode,
+                'SECTIONS' => $arIblockType['SECTIONS'],
+                'IN_RSS' => 'N',
+                'SORT' => $arIblockType['SORT'],
+                'LANG' => $arIblockType['LANG'],
+            ];
+
+            $obBlocktype = new \CIBlockType();
+            $db->StartTransaction();
+            $res = $obBlocktype->Add($arFields);
+
+            if(!$res) {
+                $db->Rollback();
+
+                // TODO: изменить возврат сообщения об ошибке
+                echo 'Error: '.$obBlocktype->LAST_ERROR.'<br>';
+            } else {
+                $db->Commit();
+            }
+
+        }
+
+        // создаем инфоблоки
+
+        return true;
+    }
+
+    /**
+     * Удаление инфоблоков
+     * @return bool
+     */
+    public function UnInstallIblocks() {
+        $db = $this->getDB();
+
+        // удаляем инфоблоки
+
+        // удаляем типы инфоблоков
+        foreach ($this->arIblockTypes as $IBTypeCODE => $arIblockType) {
+
+            $ibtCode = strtolower($this->arModConf['prefix'] . '_' . $IBTypeCODE);
+            $dbIbt = CIBlockType::GetByID($ibtCode);
+            $arIbt = $dbIbt->GetNext();
+
+            if(!$arIbt) {
+                continue;
+            }
+
+            $db->StartTransaction();
+            if(!CIBlockType::Delete($ibtCode)) {
+                $db->Rollback();
+                echo 'Delete error!';
+            } else {
+                $db->Commit();
+            }
         }
 
         return true;
