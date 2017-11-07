@@ -210,7 +210,9 @@ class local_modexample extends CModule
             $this->UnInstallFiles();
             $this->UnInstallTasks();
 
-            $this->UnInstallDB();
+            if($request->get('savedata') != 'Y') {
+                $this->UnInstallDB();
+            }
             
             if($request->get('saveprops') != 'Y') {
                 $this->UnInstallProps();
@@ -225,6 +227,37 @@ class local_modexample extends CModule
             $APPLICATION->IncludeAdminFile(Loc::getMessage($this->arModConf['name']."_UNINSTALL_TITLE"), $this->getPath()."/install/unstep2.php");
         }
 
+    }
+    
+    /**
+     * Проверка индекса на существование
+     * @param $tblName
+     * @param $idxName
+     * @param null $connection
+     * @return bool
+     */
+    static public function isIdxExists($tblName, $idxName, $connection = null) {
+        if (!$connection) {
+            $connection = Application::getConnection();
+        }
+
+        // получим имя БД
+        // как вариант можно так
+        // $arCons = \Bitrix\Main\Config\Configuration::getValue('connections');
+        // $dbName = $arCons['default']['database'];
+
+        // но мы получим так
+        $dbName = $connection->getDatabase();
+
+        $sqlCheck = "SELECT count(1) idx_exist
+                FROM INFORMATION_SCHEMA.STATISTICS
+                WHERE table_schema = '".$dbName."'
+                AND   table_name   = '".$tblName."'
+                AND   index_name   = '".$idxName."'";
+
+        $idxCnt = $connection->queryScalar($sqlCheck);
+
+        return $idxCnt > 0;
     }
 
     /**
@@ -251,8 +284,13 @@ class local_modexample extends CModule
         foreach ($this->arIndexes as $arIndex) {
 
             $tblName = Base::getInstance($this->arModConf['nsTables'] . "\\" . $arIndex[0] . "Table")->getDBTableName();
+            $idxName = 'idx_' . $tblName . '_'. $arIndex[1];
 
-            $sql = 'CREATE INDEX idx_' . $tblName . '_'. $arIndex[1]
+            if (self::isIdxExists($tblName, $idxName, $connection)) {
+                continue;
+            }
+
+            $sql = 'CREATE INDEX ' . $idxName
                 . ' on ' . $tblName . '('. $arIndex[1] .')';
 
             $connection->queryExecute($sql);
@@ -266,35 +304,35 @@ class local_modexample extends CModule
      */
     public function UnInstallDB() {
 
-        $context = Application::getInstance()->getContext();
-        $request = $context->getRequest();
-
         Loader::includeModule($this->MODULE_ID);
 
         // Удаляем индексы
         $connection = Application::getConnection();
         foreach ($this->arIndexes as $arIndex) {
             $tblName = Base::getInstance($this->arModConf['nsTables'] . "\\" . $arIndex[0] . "Table")->getDBTableName();
+            $idxName = 'idx_' . $tblName . '_'. $arIndex[1];
 
-            $sql = 'DROP INDEX idx_' . $tblName . '_'. $arIndex[1]
+            if (!self::isIdxExists($tblName, $idxName, $connection)) {
+                continue;
+            }
+
+            $sql = 'DROP INDEX ' . $idxName
                 . ' on ' . $tblName;
 
             $connection->queryExecute($sql);
 
         }
 
-        if($request->get('savedata') != 'Y') {
+        // удаляем таблицы
+        foreach ($this->arTables as $tableName) {
+            $tablePath = $this->arModConf['ns'] . "\\Tables\\" . $tableName . "Table";
 
-            foreach ($this->arTables as $tableName) {
-                $tablePath = $this->arModConf['ns'] . "\\Tables\\" . $tableName . "Table";
-
-                Application::getConnection($tablePath::getConnectionName())
-                    ->queryExecute('drop table if exists ' . Base::getInstance($tablePath)->getDBTableName());
-            }
-
-            // удаление сохраненных настроек модуля
-            Option::delete($this->MODULE_ID);
+            Application::getConnection($tablePath::getConnectionName())
+                ->queryExecute('drop table if exists ' . Base::getInstance($tablePath)->getDBTableName());
         }
+
+        // удаление сохраненных настроек модуля
+        Option::delete($this->MODULE_ID);
 
         return true;
 
