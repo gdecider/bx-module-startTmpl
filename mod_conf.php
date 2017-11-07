@@ -58,6 +58,22 @@ $arIblockTypes = [
     ],
 ];
 
+/**
+ * @var array $arIblocks
+ * инфоблоки
+ */
+$arIblocks = [
+    'REGREQUESTS' => [
+        'TYPE' => 'FORMS',
+        'NAME' => 'Запросы на регистрацию',
+
+        'PROPS' => [
+            ['NAME' => 'ФИО', 'CODE' => 'FIO'],
+            ['NAME' => 'Телефон', 'CODE' => 'PHONE'],
+        ]
+    ],
+];
+
 $arConfig = [
     'name' => 'LOCAL.EXCH1C',
     'ns' => 'Local\Exch1c',
@@ -67,6 +83,7 @@ $arConfig = [
     'arTables' => $arTables,
     'arIndexes' => $arIndexes,
     'arIblockTypes' => $arIblockTypes,
+    'arIblocks' => $arIblocks,
 ];
 
 return $arConfig;
