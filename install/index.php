@@ -580,9 +580,13 @@ class local_modexample extends CModule
     /**
      * Работа с инфоблоками
      * @return bool
+     * @throws Exception
      */
     public function InstallIblocks() {
         $db = $this->getDB();
+        $rsSites = CSite::GetList($by="sort", $order="desc", ['ACTIVE' => 'Y']);
+        $arSite = $rsSites->Fetch();
+        $siteId = $arSite['ID'];
 
         // создаем типы инфоблоков
         foreach ($this->arIblockTypes as $IBTypeCODE => $arIblockType) {
@@ -619,6 +623,60 @@ class local_modexample extends CModule
         }
 
         // создаем инфоблоки
+        foreach ($this->arIblocks as $IBCODE => $arIblock) {
+
+            $ibCode = strtolower($this->arModConf['prefix'] . '_' . $IBCODE);
+            $ibtCode = strtolower($this->arModConf['prefix'] . '_' . $arIblock['TYPE']);
+
+            $ib = new CIBlock();
+            $arFields = Array(
+                "ACTIVE" => 'Y',
+                "NAME" => $arIblock['NAME'],
+                "CODE" => $ibCode,
+                "IBLOCK_TYPE_ID" => $ibtCode,
+                "SITE_ID" => [$siteId],
+                "LID" => $siteId,
+                "SORT" => 1000,
+                "WORKFLOW" => 'N',
+                //"GROUP_ID" => Array("2"=>"D", "3"=>"R")
+            );
+
+            $ibId = $ib->Add($arFields);
+
+            if ($ibId > 0) {
+                // добавляем свойства
+                foreach ($arIblock['PROPS'] as $arProp) {
+
+                    $dbProperties = CIBlockProperty::GetList([], ["IBLOCK_ID" => $ibId, 'CODE' => $arProp['CODE']]);
+                    if ($dbProperties->SelectedRowsCount() > 0) {
+                        continue;
+                    }
+
+                    $ibp = new CIBlockProperty;
+
+                    $arFields = Array(
+                        "NAME" => $arProp['NAME'],
+                        "ACTIVE" => "Y",
+                        "SORT" => 100, // Сортировка
+                        "CODE" => $arProp['CODE'],
+                        "PROPERTY_TYPE" => "S", // Строка
+                        "ROW_COUNT" => 1, // Количество строк
+                        "COL_COUNT" => 60, // Количество столбцов
+                        "IBLOCK_ID" => $ibId
+                    );
+                    $propId = $ibp->Add($arFields);
+
+                    if (!$propId) {
+                        \Bitrix\Main\Diag\Debug::dump($ibp->LAST_ERROR);
+                        die();
+                    }
+                }
+            } else {
+                \Bitrix\Main\Diag\Debug::dump($ib->LAST_ERROR);
+                die();
+            }
+
+        }
 
         return true;
     }
@@ -631,6 +689,27 @@ class local_modexample extends CModule
         $db = $this->getDB();
 
         // удаляем инфоблоки
+        foreach ($this->arIblocks as $IBCODE => $arIblock) {
+
+            $ibCode = strtolower($this->arModConf['prefix'] . '_' . $IBCODE);
+            $ibtCode = strtolower($this->arModConf['prefix'] . '_' . $arIblock['TYPE']);
+            $arOrder = [];
+            $arFilter = ['TYPE' => $ibtCode, 'CODE' => $ibCode];
+            $dbIBList = CIBlock::GetList($arOrder, $arFilter);
+
+            if ($dbIBList->SelectedRowsCount() == 1) {
+
+                $arIBList = $dbIBList->GetNext();
+
+                $db->StartTransaction();
+                if (!CIBlock::Delete($arIBList['ID'])) {
+                    $db->Rollback();
+                    echo 'Delete error!';
+                } else {
+                    $db->Commit();
+                }
+            }
+        }
 
         // удаляем типы инфоблоков
         foreach ($this->arIblockTypes as $IBTypeCODE => $arIblockType) {
