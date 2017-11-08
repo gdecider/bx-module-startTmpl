@@ -56,6 +56,12 @@ class local_modexample extends CModule
     private $arCstmProps = [];
     
     private $arIblockTypes = [];
+    
+    private $arEmailTypes = [];
+
+    private $arEmailTmpls = [];
+
+    private $siteId;
 
     public function __construct(){
 
@@ -87,6 +93,14 @@ class local_modexample extends CModule
         if ($this->arModConf['arIblockTypes']) {
             $this->arIblockTypes = $this->arModConf['arIblockTypes'];
         }
+        
+        if ($this->arModConf['arEmailTypes']) {
+            $this->arEmailTypes = $this->arModConf['arEmailTypes'];
+        }
+
+        if ($this->arModConf['arEmailTmpls']) {
+            $this->arEmailTmpls = $this->arModConf['arEmailTmpls'];
+        }
 
         if (is_array($arModuleVersion) && array_key_exists('VERSION', $arModuleVersion)) {
             $this->MODULE_VERSION = $arModuleVersion['VERSION'];
@@ -105,6 +119,10 @@ class local_modexample extends CModule
 
         $this->PARTNER_CODE = $this->getPartnerCodeByModuleID();
         $this->MODULE_CODE = $this->getModuleCodeByModuleID();
+        
+        $rsSites = CSite::GetList($by="sort", $order="desc", ['ACTIVE' => 'Y']);
+        $arSite = $rsSites->Fetch();
+        $this->siteId = $arSite['ID'];
     }
 
     /**
@@ -176,6 +194,7 @@ class local_modexample extends CModule
                 $this->InstallDB();
                 $this->InstallIblocks();
                 $this->InstallProps();
+                $this->InstallEmails();
                 $this->InstallEvents();
                 $this->InstallFiles();
                 $this->InstallTasks();
@@ -220,6 +239,7 @@ class local_modexample extends CModule
             
             if($request->get('saveiblocks') != 'Y') {
                 $this->UnInstallIblocks();
+                $this->UnInstallEmails();
             }
             
             ModuleManager::unRegisterModule($this->MODULE_ID);
@@ -584,9 +604,6 @@ class local_modexample extends CModule
      */
     public function InstallIblocks() {
         $db = $this->getDB();
-        $rsSites = CSite::GetList($by="sort", $order="desc", ['ACTIVE' => 'Y']);
-        $arSite = $rsSites->Fetch();
-        $siteId = $arSite['ID'];
 
         // создаем типы инфоблоков
         foreach ($this->arIblockTypes as $IBTypeCODE => $arIblockType) {
@@ -634,8 +651,8 @@ class local_modexample extends CModule
                 "NAME" => $arIblock['NAME'],
                 "CODE" => $ibCode,
                 "IBLOCK_TYPE_ID" => $ibtCode,
-                "SITE_ID" => [$siteId],
-                "LID" => $siteId,
+                "SITE_ID" => [$this->siteId],
+                "LID" => $this->siteId,
                 "SORT" => 1000,
                 "WORKFLOW" => 'N',
                 //"GROUP_ID" => Array("2"=>"D", "3"=>"R")
@@ -730,6 +747,72 @@ class local_modexample extends CModule
                 $db->Commit();
             }
         }
+
+        return true;
+    }
+    
+    /**
+     * Создание почтовых событий и шаблонов
+     * @return bool
+     */
+    public function InstallEmails() {
+
+        // Создаем почтовые события
+        $obEventType = new CEventType();
+        foreach ($this->arEmailTypes as $arEmailType) {
+            $eid = $obEventType->Add($arEmailType);
+
+            if(!$eid) {
+                $obEventType->LAST_ERROR;
+                die();
+            }
+        }
+        unset($obEventType);
+
+        // Создаем почтовые шаблоны
+        $obTemplate = new CEventMessage();
+        foreach ($this->arEmailTmpls as $arEmailTmpl) {
+            $arEmailTmpl["LID"] = $this->siteId;
+            $tid = $obTemplate->Add($arEmailTmpl);
+
+            if(!$tid) {
+                $obTemplate->LAST_ERROR;
+                die();
+            }
+        }
+        unset($obTemplate);
+
+        return true;
+    }
+
+    /**
+     * Удаление почтовых событий и шаблонов
+     * @return bool
+     */
+    public function UnInstallEmails() {
+
+        // Удаляем почтовые шаблоны
+        $obTemplate = new CEventMessage();
+        foreach ($this->arEmailTmpls as $arEmailTmpl) {
+            $arFilter = [
+                "TYPE_ID" => $arEmailTmpl["EVENT_NAME"],
+                "SUBJECT" => $arEmailTmpl["SUBJECT"],
+            ];
+            $rsMess = CEventMessage::GetList($by="site_id", $order="desc", $arFilter);
+
+            while ($arMess = $rsMess->GetNext()) {
+                $obTemplate->Delete($arMess["ID"]);
+            }
+        }
+        unset($obTemplate);
+
+        // Удаляем почтовые события
+        $obEventType = new CEventType();
+        foreach ($this->arEmailTypes as $arEmailType) {
+            $obEventType->Delete($arEmailType["EVENT_NAME"]);
+        }
+        unset($obEventType);
+
 
         return true;
     }
