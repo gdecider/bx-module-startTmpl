@@ -111,6 +111,94 @@ $arEmailTmpls = [
     ],
 ];
 
+/**
+ * @var array $arSalePersonTypes
+ * типы плательщиков
+ */
+$arSalePersonTypes = [
+    ['NAME' => 'Тестовый тип плательщика',],
+];
+
+/**
+ * @var array $arSaleOrderPropsGroups
+ * группы свойств заказа
+ */
+$arSaleOrderPropsGroups = [
+    [
+        "PERSON_TYPE_NAME" => 'Физическое лицо',
+        'NAME' => 'Служебные',
+    ],
+];
+
+/**
+ * @var array $arSaleOrderProps
+ * свойства заказа
+ * Допустимые ключи:
+
+    NAME - название свойства (тип плательщика зависит от сайта, а сайт - от языка; название должно быть на соответствующем языке);
+    CODE - символьный код свойства.
+    TYPE - тип свойства. Допустимые значения:
+    CHECKBOX - флаг;
+    TEXT - строка текста;
+    SELECT - выпадающий список значений;
+    MULTISELECT - список со множественным выбором;
+    TEXTAREA - многострочный текст;
+    LOCATION - местоположение;
+    RADIO - переключатель.
+    REQUIRED - флаг (Y/N) обязательное ли поле;
+    DEFAULT_VALUE - значение по умолчанию;
+    SORT - индекс сортировки;
+    USER_PROPS - флаг (Y/N) входит ли это свойство в профиль покупателя;
+    IS_LOCATION - флаг (Y/N) использовать ли значение свойства как местоположение покупателя для расчёта стоимости доставки (только для свойств типа LOCATION);
+    IS_EMAIL - флаг (Y/N) использовать ли значение свойства как E-Mail покупателя;
+    IS_PROFILE_NAME - флаг (Y/N) использовать ли значение свойства как название профиля покупателя;
+    IS_PAYER - флаг (Y/N) использовать ли значение свойства как имя плательщика;
+    IS_LOCATION4TAX - флаг (Y/N) использовать ли значение свойства как местоположение покупателя для расчёта налогов (только для свойств типа LOCATION);
+
+    IS_FILTERED - свойство доступно в фильтре по заказам. С версии 10.0.
+    IS_ZIP - использовать как почтовый индекс. С версии 10.0.
+    IS_PHONE
+    IS_ADDRESS
+
+    DESCRIPTION - описание свойства;
+    MULTIPLE
+
+    UTIL - позволяет использовать свойство только в административной части. С версии 11.0.
+ */
+$arSaleOrderProps = [
+    [
+        "PERSON_TYPE_NAME" => 'Физическое лицо',
+        "PROPS_GROUP_NAME" => 'Служебные',
+        "NAME" => "Служебное Требуется передать в 1С",
+        "TYPE" => "TEXT",
+        "CODE" => "EXPORT_DO",
+    ],
+
+    [
+        "PERSON_TYPE_NAME" => 'Физическое лицо',
+        "PROPS_GROUP_NAME" => 'Служебные',
+        "NAME" => "Служебное Получен из 1С",
+        "TYPE" => "TEXT",
+        "CODE" => "IS_IMPORTED",
+    ],
+
+    [
+        "PERSON_TYPE_NAME" => 'Физическое лицо',
+        "PROPS_GROUP_NAME" => 'Служебные',
+        "NAME" => "Служебное дата запроса",
+        "TYPE" => "TEXT",
+        "CODE" => "EDIT_REQUEST_DT",
+    ],
+
+    [
+        "PERSON_TYPE_NAME" => 'Физическое лицо',
+        "PROPS_GROUP_NAME" => 'Служебные',
+        "NAME" => "Служебное дата подтверждения",
+        "TYPE" => "TEXT",
+        "CODE" => "EDIT_RESPONS_DT",
+    ],
+];
+
 $arConfig = [
     'name' => 'LOCAL.EXCH1C',
     'ns' => 'Local\Exch1c',
@@ -123,6 +211,9 @@ $arConfig = [
     'arIblocks' => $arIblocks,
     'arEmailTypes' => $arEmailTypes,
     'arEmailTmpls' => $arEmailTmpls,
+    'arSalePersonTypes' => $arSalePersonTypes,
+    'arSaleOrderPropsGroups' => $arSaleOrderPropsGroups,
+    'arSaleOrderProps' => $arSaleOrderProps,
 ];
 
 return $arConfig;
