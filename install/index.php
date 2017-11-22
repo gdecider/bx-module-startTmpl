@@ -8,6 +8,7 @@ use Bitrix\Main\Entity\Base;
 use Bitrix\Main\Config\Option;
 use Bitrix\Main\IO\Directory;
 use Bitrix\Main\IO\File;
+use Bitrix\Sale\Internals\OrderPropsTable;
 
 Loc::loadMessages(__FILE__);
 
@@ -60,6 +61,12 @@ class local_modexample extends CModule
     private $arEmailTypes = [];
 
     private $arEmailTmpls = [];
+    
+    private $arSalePersonTypes = [];
+
+    private $arSaleOrderPropsGroups = [];
+
+    private $arSaleOrderProps = [];
 
     private $siteId;
 
@@ -100,6 +107,18 @@ class local_modexample extends CModule
 
         if ($this->arModConf['arEmailTmpls']) {
             $this->arEmailTmpls = $this->arModConf['arEmailTmpls'];
+        }
+        
+        if ($this->arModConf['arSalePersonTypes']) {
+            $this->arSalePersonTypes = $this->arModConf['arSalePersonTypes'];
+        }
+
+        if ($this->arModConf['arSaleOrderPropsGroups']) {
+            $this->arSaleOrderPropsGroups = $this->arModConf['arSaleOrderPropsGroups'];
+        }
+
+        if ($this->arModConf['arSaleOrderProps']) {
+            $this->arSaleOrderProps = $this->arModConf['arSaleOrderProps'];
         }
 
         if (is_array($arModuleVersion) && array_key_exists('VERSION', $arModuleVersion)) {
@@ -194,6 +213,9 @@ class local_modexample extends CModule
                 $this->InstallDB();
                 $this->InstallIblocks();
                 $this->InstallProps();
+                $this->InstallSalePersonTypes();
+                $this->InstallSaleOrderPropsGroups();
+                $this->InstallSaleOrderProps();
                 $this->InstallEmails();
                 $this->InstallEvents();
                 $this->InstallFiles();
@@ -235,6 +257,12 @@ class local_modexample extends CModule
             
             if($request->get('saveprops') != 'Y') {
                 $this->UnInstallProps();
+            }
+            
+            if($request->get('savesaleprops') != 'Y') {
+                $this->UnInstallSalePersonTypes();
+                $this->UnInstallSaleOrderPropsGroups();
+                $this->UnInstallSaleOrderProps();
             }
             
             if($request->get('saveiblocks') != 'Y') {
@@ -813,6 +841,294 @@ class local_modexample extends CModule
         }
         unset($obEventType);
 
+
+        return true;
+    }
+    
+    /**
+     * Создание типы плательщиков
+     * @return bool
+     */
+    public function InstallSalePersonTypes()
+    {
+        if( !Loader::includeModule('sale') ) {
+            return true;
+        }
+
+        foreach ($this->arSalePersonTypes as $arPersTypeFields) {
+            $arPersTypeFields['ACTIVE'] = 'Y';
+            $arPersTypeFields['SORT'] = 100;
+            $arPersTypeFields['LID'] = $this->siteId;
+
+            $arOrder = [];
+            $arFilter = ['ACTIVE' => 'Y', 'NAME' => $arPersTypeFields['NAME']];
+            $arSelect = ['ID', 'NAME'];
+
+            $dbPersTypes = CSalePersonType::GetList($arOrder, $arFilter, false, false, $arSelect);
+
+            $arPersType = $dbPersTypes->GetNext();
+
+            if ($arPersType) {
+                $persTypeID = $arPersType['ID'];
+            } else {
+                $persTypeID = (new CSalePersonType())->Add($arPersTypeFields);
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Удаление типы плательщиков
+     * @return bool
+     */
+    public function UnInstallSalePersonTypes()
+    {
+        if( !Loader::includeModule('sale') ) {
+            return true;
+        }
+
+        foreach ($this->arSalePersonTypes as $arPersTypeFields) {
+            $arOrder = [];
+            $arFilter = ['ACTIVE' => 'Y', 'NAME' => $arPersTypeFields['NAME']];
+            $arSelect = ['ID', 'NAME'];
+
+            $dbPersTypes = CSalePersonType::GetList($arOrder, $arFilter, false, false, $arSelect);
+
+            while ($arPersType = $dbPersTypes->GetNext()) {
+                (new CSalePersonType())->Delete($arPersType['ID']);
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Создание группы свойств заказа
+     * @return bool
+     */
+    public function InstallSaleOrderPropsGroups()
+    {
+        if( !Loader::includeModule('sale') ) {
+            return true;
+        }
+
+        $arPTs = $this->getPersonTypesArray();
+        $arOPGs = $this->getSaleOrderPropsGroupsArray();
+
+        foreach ($this->arSaleOrderPropsGroups as $arPropGroupFields) {
+
+            if(isset($arOPGs[$arPropGroupFields['NAME']]) || !isset($arPTs[$arPropGroupFields['PERSON_TYPE_NAME']])) {
+                continue;
+            }
+
+            $arPropGroupFields["PERSON_TYPE_ID"] = $arPTs[$arPropGroupFields['PERSON_TYPE_NAME']]["ID"];
+            $propGroupID = (new CSaleOrderPropsGroup())->Add($arPropGroupFields);
+        }
+
+        return true;
+    }
+
+    /**
+     * Удаление группы свойств заказа
+     * @return bool
+     */
+    public function UnInstallSaleOrderPropsGroups()
+    {
+        if( !Loader::includeModule('sale') ) {
+            return true;
+        }
+
+        $arOPGs = $this->getSaleOrderPropsGroupsArray();
+
+        foreach ($this->arSaleOrderPropsGroups as $arPropGroupFields) {
+
+            if(!isset($arOPGs[$arPropGroupFields['NAME']])) {
+                continue;
+            }
+
+            (new CSaleOrderPropsGroup())->Delete($arOPGs[$arPropGroupFields['NAME']]['ID']);
+        }
+
+        return true;
+    }
+
+    public function getPersonTypesArray($arOrder = [], $arFilter = [], $arSelect = ['ID', 'NAME'])
+    {
+        if( !Loader::includeModule('sale') ) {
+            return true;
+        }
+
+        $dbPTs = CSalePersonType::GetList($arOrder, $arFilter, false, false, $arSelect);
+
+        $arPTs = [];
+        while ($arPersType = $dbPTs->GetNext()) {
+            $arPTs[$arPersType['NAME']] = $arPersType;
+        }
+
+        return $arPTs;
+    }
+
+    public function getSaleOrderPropsGroupsArray($arOrder = [], $arFilter = [], $arSelect = ['ID', 'NAME'])
+    {
+        if( !Loader::includeModule('sale') ) {
+            return true;
+        }
+
+        $dbOPGs = CSaleOrderPropsGroup::GetList($arOrder, $arFilter, false, false, $arSelect);
+
+        $arOPGs = [];
+        while ($arOrderPropsGroup = $dbOPGs->GetNext()) {
+            $arOPGs[$arOrderPropsGroup['NAME']] = $arOrderPropsGroup;
+        }
+
+        return $arOPGs;
+    }
+
+    /**
+     * Создание свойства заказа
+     * @return bool
+     */
+    public function InstallSaleOrderProps()
+    {
+        if( !Loader::includeModule('sale') ) {
+            return true;
+        }
+
+        // получим список всех типов плательщиков
+        $arPTs = $this->getPersonTypesArray();
+
+        // получим список всех групп заказа
+        $arOPGs = $this->getSaleOrderPropsGroupsArray();
+
+        $arOrderPropDefaults = [
+            "REQUIRED" => "N",
+            "DEFAULT_VALUE" => "N",
+            "SORT" => 100,
+
+            "USER_PROPS" => "N",
+            "IS_LOCATION" => "N",
+            "IS_LOCATION4TAX" => "N",
+            "IS_EMAIL" => "N",
+            "IS_PROFILE_NAME" => "N",
+            "IS_PAYER" => "N",
+            "IS_FILTERED" => "N",
+            "IS_ZIP" => "N",
+            "IS_PHONE" => "N",
+            "IS_ADDRESS" => "N",
+            "DESCRIPTION" => "",
+            "MULTIPLE" => "N",
+            "UTIL" => "N",
+        ];
+
+        $arFilter = [
+            'LOGIC' => 'OR',
+        ];
+
+        $arSelect = ['ID', 'CODE', 'NAME', 'TYPE'];
+
+        foreach ($this->arSaleOrderProps as $key => $arOrderProp) {
+            if(!isset($arPTs[$arOrderProp["PERSON_TYPE_NAME"]]) || !isset($arOPGs[$arOrderProp["PROPS_GROUP_NAME"]])) {
+                continue;
+            }
+            $this->arSaleOrderProps[$key]["PERSON_TYPE_ID"] = $arPTs[$arOrderProp["PERSON_TYPE_NAME"]]["ID"];
+            $this->arSaleOrderProps[$key]["PROPS_GROUP_ID"] = $arOPGs[$arOrderProp["PROPS_GROUP_NAME"]]["ID"];
+
+            unset($this->arSaleOrderProps[$key]["PERSON_TYPE_NAME"]);
+            unset($this->arSaleOrderProps[$key]["PROPS_GROUP_NAME"]);
+
+            $this->arSaleOrderProps[$key] = array_merge($arOrderPropDefaults, $this->arSaleOrderProps[$key]);
+
+            // собираем фильтр для определения наличия свойств
+            $arFilter[] = [
+                'PERSON_TYPE_ID' => $this->arSaleOrderProps[$key]["PERSON_TYPE_ID"],
+                'TYPE' => $arOrderProp["TYPE"],
+                'CODE' => $arOrderProp["CODE"],
+            ];
+        }
+
+        $dbSOPs = OrderPropsTable::getList([
+            'select' => $arSelect,
+            'filter' => $arFilter,
+        ]);
+
+        $arSOPs = [];
+        while ($arSOP = $dbSOPs->fetch()) {
+            $arSOPs[$arSOP['CODE']] = $arSOP;
+        }
+
+        foreach ($this->arSaleOrderProps as $arOrderProp) {
+
+            if(isset($arSOPs[$arOrderProp['CODE']])) {
+                continue;
+            }
+
+            $res = OrderPropsTable::add($arOrderProp);
+
+            if(!$res->isSuccess()) {
+                echo $res->getErrorMessages();
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Удаление свойства заказа
+     * @return bool
+     */
+    public function UnInstallSaleOrderProps()
+    {
+        if( !Loader::includeModule('sale') ) {
+            return true;
+        }
+
+        // получим список всех типов плательщиков
+        $arPTs = $this->getPersonTypesArray();
+
+        // получим список всех групп заказа
+        $arOPGs = $this->getSaleOrderPropsGroupsArray();
+
+        $arFilter = [
+            'LOGIC' => 'OR',
+        ];
+
+        $arSelect = ['ID', 'CODE', 'NAME', 'TYPE'];
+
+        foreach ($this->arSaleOrderProps as $key => $arOrderProp) {
+            if(!isset($arPTs[$arOrderProp["PERSON_TYPE_NAME"]]) || !isset($arOPGs[$arOrderProp["PROPS_GROUP_NAME"]])) {
+                continue;
+            }
+            $this->arSaleOrderProps[$key]["PERSON_TYPE_ID"] = $arPTs[$arOrderProp["PERSON_TYPE_NAME"]]["ID"];
+            $this->arSaleOrderProps[$key]["PROPS_GROUP_ID"] = $arOPGs[$arOrderProp["PROPS_GROUP_NAME"]]["ID"];
+
+            // собираем фильтр для определения наличия свойств
+            $arFilter[] = [
+                'PERSON_TYPE_ID' => $this->arSaleOrderProps[$key]["PERSON_TYPE_ID"],
+                'TYPE' => $arOrderProp["TYPE"],
+                'CODE' => $arOrderProp["CODE"],
+            ];
+        }
+
+        $dbSOPs = OrderPropsTable::getList([
+            'select' => $arSelect,
+            'filter' => $arFilter,
+        ]);
+
+        $arSOPs = [];
+        while ($arSOP = $dbSOPs->fetch()) {
+            $arSOPs[$arSOP['CODE']] = $arSOP;
+        }
+
+        foreach ($this->arSaleOrderProps as $arOrderProp) {
+
+            if(!isset($arSOPs[$arOrderProp['CODE']])) {
+                continue;
+            }
+
+            OrderPropsTable::delete($arSOPs[$arOrderProp['CODE']]['ID']);
+
+        }
 
         return true;
     }
