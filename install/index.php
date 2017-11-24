@@ -1062,6 +1062,9 @@ class local_modexample extends CModule
             if(isset($arSOPs[$arOrderProp['CODE']])) {
                 continue;
             }
+            
+            $arOrderProp = CSaleOrderPropsAdapter::convertOldToNew($arOrderProp);
+            $arOrderProp = array_intersect_key($arOrderProp, CSaleOrderPropsAdapter::$allFields);
 
             $res = OrderPropsTable::add($arOrderProp);
 
