@@ -58,6 +58,8 @@ class local_modexample extends CModule
     
     private $arIblockTypes = [];
     
+    private $arIblocks = [];
+    
     private $arEmailTypes = [];
 
     private $arEmailTmpls = [];
