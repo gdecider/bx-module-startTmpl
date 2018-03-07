@@ -103,6 +103,10 @@ class local_modexample extends CModule
             $this->arIblockTypes = $this->arModConf['arIblockTypes'];
         }
         
+        if ($this->arModConf['arIblocks']) {
+            $this->arIblocks = $this->arModConf['arIblocks'];
+        }
+        
         if ($this->arModConf['arEmailTypes']) {
             $this->arEmailTypes = $this->arModConf['arEmailTypes'];
         }
