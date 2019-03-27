@@ -10,5 +10,8 @@ use Bitrix\Main\Type;
 
 class Func
 {
-
+    public static function camel2snake($str)
+    {
+        return strtolower(preg_replace('/(.)([A-Z])/', '$1_$2', $str));
+    }
 }
