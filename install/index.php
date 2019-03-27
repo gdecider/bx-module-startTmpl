@@ -326,31 +326,32 @@ class local_modexample extends CModule
 
         foreach ($this->arTables as $tableName) {
             $tablePath = $this->arModConf['ns'] . "\\Tables\\" . $tableName . "Table";
-            if (!Application::getConnection($tablePath::getConnectionName())
-                ->isTableExists(Base::getInstance($tablePath)->getDBTableName())
+            $connection = Application::getConnection($tablePath::getConnectionName());
+
+            if (!$connection->isTableExists(Base::getInstance($tablePath)->getDBTableName())
             ) {
                 Base::getInstance($tablePath)->createDbTable();
             }
-        }
 
-        // Создаем индексы
-        $connection = Application::getConnection();
-        foreach ($this->arIndexes as $arIndex) {
+            // Создаем индексы
+            foreach ($this->arIndexes as $arIndex) {
+                if ($arIndex[0] !== $tableName) {
+                    continue;
+                }
 
-            $tblName = Base::getInstance($this->arModConf['nsTables'] . "\\" . $arIndex[0] . "Table")->getDBTableName();
-            $idxName = 'idx_' . $tblName . '_'. $arIndex[1];
+                $tblName = Base::getInstance($this->arModConf['nsTables'] . "\\" . $arIndex[0] . "Table")->getDBTableName();
+                $idxName = 'idx_' . $tblName . '_'. $arIndex[1];
+                if (self::isIdxExists($tblName, $idxName, $connection)) {
+                    continue;
+                }
 
-            if (self::isIdxExists($tblName, $idxName, $connection)) {
-                continue;
+                $sql = 'CREATE INDEX ' . $idxName
+                    . ' on ' . $tblName . '(`'. $arIndex[1] .'`)';
+
+                $connection->queryExecute($sql);
+
             }
-
-            $sql = 'CREATE INDEX ' . $idxName
-                . ' on ' . $tblName . '('. $arIndex[1] .')';
-
-            $connection->queryExecute($sql);
-
         }
-
     }
 
     /**
