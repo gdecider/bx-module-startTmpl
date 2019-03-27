@@ -3,18 +3,33 @@ namespace Local\Modexample\Tables;
 
 use \Bitrix\Main\Entity;
 use \Bitrix\Main\Type;
+use Local\Modexample\Func;
 
 class TicketTable extends Entity\DataManager
 {
     private static $modConf = [];
+    
+    private static function getTableNameFromClassName()
+    {
+        $className = end(explode('\\', get_class(new self())));
 
-    public static function getTableName() {
-        self::$modConf = include __DIR__ . '/../../mod_conf.php';
-
-        return self::$modConf['prefix'] . '_tickets';
+        return Func::camel2snake(str_replace('Table', '', $className));
     }
 
-    public static function getMap() {
+    public static function getTableName() 
+    {
+        self::$modConf = include __DIR__ . '/../../mod_conf.php';
+
+        $tableName = self::getTableNameFromClassName();
+        if (!empty(self::$modConf['prefix'])) {
+            $tableName = self::$modConf['prefix'] . $tableName;
+        }
+
+        return $tableName;
+    }
+
+    public static function getMap() 
+    {
         return [
             // ID
             new Entity\IntegerField('id', [
