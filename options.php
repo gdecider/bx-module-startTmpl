@@ -26,6 +26,10 @@ $aTabs = [
         'TAB' => Loc::getMessage($arModConf['name'] . '_TAB_SETTINGS'), // то что написано на табе
         'TITLE' => Loc::getMessage($arModConf['name'] . '_TAB_TITLE_SETTINGS'), // То что написано в области таба
         'OPTIONS' => [
+//            'Разделительный заголовок',
+//            [
+//                'note' => 'Заметка на желтом фоне',
+//            ],
 //            [
 //                'DB_AVTO_TABLE_NAME', // Имя поля
 //                'Название таблицы Автомобилей в файле', // Подпись поля
