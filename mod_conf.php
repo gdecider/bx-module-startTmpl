@@ -199,11 +199,18 @@ $arSaleOrderProps = [
     ],
 ];
 
+$baseDir = basename(__DIR__);
+$moduleName = strtoupper($baseDir);
+$baseNS = 'Local';
+$parts = explode('.', $baseDir);
+$moduleNS = $baseNS . '\\' . ucfirst($parts[1]);
+
 $arConfig = [
-    'name' => 'LOCAL.EXCH1C',
-    'ns' => 'Local\Exch1c',
-    'nsTables' => 'Local\Exch1c\Tables',
-    'prefix' => 'local_exch1c',
+    'id' => strtolower($moduleName),
+    'name' => $moduleName,
+    'ns' => $moduleNS,
+    'nsTables' => $moduleNS . '\Tables',
+    'prefix' => 'local_modulename',
     'arCstmProps' => $arCstmProps,
     'arTables' => $arTables,
     'arIndexes' => $arIndexes,
